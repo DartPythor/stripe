@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Купить {{ item.name }}</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <h1>Товар: {{ item.name }}</h1>
+  <p>{{ item.description }}</p>
+  <p>Цена: {{ item.price }} {{ item.currency|upper }}</p>
+
+  <button id="buy-button">Купить</button>
+
+  <script type="text/javascript">
+    const stripe = Stripe("{{ stripe_publishable_key }}");
+    const buyButton = document.getElementById("buy-button");
+
+    buyButton.addEventListener("click", () => {
+      fetch("{% url 'payments:api_buy_item' item.id %}", {
+        method: "GET",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Ошибка при создании сессии");
+        return response.json();
+      })
+      .then(session => {
+        return stripe.redirectToCheckout({ sessionId: session.id });
+      })
+      .then(result => {
+        if (result.error) {
+          alert(result.error.message);
+        }
+      })
+      .catch(error => {
+        console.error("Ошибка:", error);
+      });
+    });
+  </script>
+</body>
+</html>
