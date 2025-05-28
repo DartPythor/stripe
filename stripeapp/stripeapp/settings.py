@@ -106,3 +106,15 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ],
 }
+
+STRIPE_SECRET_KEY = env(
+    "STRIPE_SECRET_KEY",
+    cast=str,
+    default="sk_test_51RTpqfD5FxV2LJUjdFmuDTtrW5Gw9Wd06kaZmdLzUsS3GlxQDZj784NmZwaNBkBnxkN67Mub5NBtRY1dsqbtBh7x00deMXDIk6",
+)
+
+STRIPE_PUBLISHABLE_KEY = env(
+    "STRIPE_PUBLISHABLE_KEY",
+    cast=str,
+    default="pk_test_51RTpqfD5FxV2LJUj25ZEMMG0Uk3dMdK41KuunxlqWYWwtsjbpZRMEvJozQS2K5r7ynCmZo8aLnpTR4MN6PTYw5hG00HV9Q3AK0",
+)
