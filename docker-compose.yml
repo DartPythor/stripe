@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "cd stripeapp && python manage.py migrate && python manage.py collectstatic
+             gunicorn --bind 0.0.0.0:8000 stripeapp.wsgi"
+    volumes:
+      - ./:/app/stripeapp
+    environment:
+      - DJANGO_SETTINGS_MODULE=stripeapp.settings
+      - PYTHONUNBUFFERED=1
+  nginx:
+    image: nginx:1.25
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+
+volumes:
+  sqlite_data:
