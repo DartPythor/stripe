@@ -1,5 +1,6 @@
 from django.contrib import admin
-from payments.models import Item, Order, OrderItem, Discount, Tax
+
+from payments.models import Discount, Item, Order, OrderItem, Tax
 
 
 @admin.register(Item)
@@ -30,11 +31,21 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "created_at", "currency", "get_total_amount_display"]
+    list_display = [
+        "id",
+        "user",
+        "created_at",
+        "currency",
+        "get_total_amount_display",
+    ]
     list_filter = ["created_at", "currency"]
     search_fields = ["user__username", "id"]
     inlines = [OrderItemInline]
 
     def get_total_amount_display(self, obj):
         return f"{obj.get_total_amount()} {obj.currency.upper()}"
+
     get_total_amount_display.short_description = "Сумма заказа"
+
+
+__all__ = ()

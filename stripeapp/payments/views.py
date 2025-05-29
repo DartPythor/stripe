@@ -16,11 +16,13 @@ class ItemDetailView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        item = get_object_or_404(Item, pk=self.kwargs.get('pk'))
-        context.update({
-            "item": item,
-            "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-        })
+        item = get_object_or_404(Item, pk=self.kwargs.get("pk"))
+        context.update(
+            {
+                "item": item,
+                "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+            },
+        )
         return context
 
 
@@ -31,13 +33,15 @@ class OrderDetailView(TemplateView):
         context = super().get_context_data(**kwargs)
         order = get_object_or_404(
             Order,
-            pk=self.kwargs.get('order_id'),
-            user=self.request.user
+            pk=self.kwargs.get("order_id"),
+            user=self.request.user,
         )
-        context.update({
-            "order": order,
-            "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-        })
+        context.update(
+            {
+                "order": order,
+                "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+            },
+        )
         return context
 
 
@@ -58,17 +62,20 @@ class CreateCheckoutSessionItem(APIView):
                         },
                     },
                     "quantity": 1,
-                }
+                },
             ],
             mode="payment",
             success_url=request.build_absolute_uri(
-                reverse("payments:item_success")) + "?session_id={CHECKOUT_SESSION_ID}",
+                reverse("payments:item_success"),
+            )
+            + "?session_id={CHECKOUT_SESSION_ID}",
             cancel_url=request.build_absolute_uri(
-                reverse("payments:item_cancel")),
+                reverse("payments:item_cancel"),
+            ),
             metadata={
                 "item_id": str(item.id),
                 "user_id": str(request.user.id),
-            }
+            },
         )
         return Response({"id": session.id})
 
@@ -87,17 +94,19 @@ class CreateCheckoutSessionOrder(APIView):
 
         line_items = []
         for order_item in order.items.all():
-            line_items.append({
-                "price_data": {
-                    "currency": order.currency,
-                    "unit_amount": int(order_item.unit_price * 100),
-                    "product_data": {
-                        "name": order_item.item.name,
-                        "description": order_item.item.description,
+            line_items.append(
+                {
+                    "price_data": {
+                        "currency": order.currency,
+                        "unit_amount": int(order_item.unit_price * 100),
+                        "product_data": {
+                            "name": order_item.item.name,
+                            "description": order_item.item.description,
+                        },
                     },
+                    "quantity": order_item.quantity,
                 },
-                "quantity": order_item.quantity,
-            })
+            )
 
         discounts = []
         active_discounts = order.discounts.filter(active=True)
@@ -139,12 +148,16 @@ class CreateCheckoutSessionOrder(APIView):
             discounts=discounts if discounts else None,
             tax_id_collection={"enabled": False},
             success_url=request.build_absolute_uri(
-                reverse("payments:order_success")) + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=request.build_absolute_uri(reverse("payments:order_cancel")),
+                reverse("payments:order_success"),
+            )
+            + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=request.build_absolute_uri(
+                reverse("payments:order_cancel"),
+            ),
             metadata={
                 "order_id": str(order.id),
                 "user_id": str(request.user.id),
-            }
+            },
         )
         return Response({"id": session.id})
 
@@ -155,3 +168,6 @@ class OrderSuccessView(TemplateView):
 
 class OrderCancelView(TemplateView):
     template_name = "payments/cancel.html"
+
+
+__all__ = ()

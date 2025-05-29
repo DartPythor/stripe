@@ -120,7 +120,7 @@ class Order(models.Model):
             [
                 discount.get_amount(items_total)
                 for discount in self.discounts.all()
-            ]
+            ],
         )
         taxed_base = items_total - discount_sum
         tax_sum = sum([tax.get_amount(taxed_base) for tax in self.taxes.all()])
@@ -143,3 +143,6 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.item.name} × {self.quantity} (Order #{self.order.id})"
+
+
+__all__ = ()
