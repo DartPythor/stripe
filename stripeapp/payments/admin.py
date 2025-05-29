@@ -24,7 +24,6 @@ class TaxAdmin(admin.ModelAdmin):
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
-    readonly_fields = ["item", "quantity", "unit_price"]
     can_delete = False
     extra = 0
 

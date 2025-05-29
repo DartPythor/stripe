@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Оплата заказа #{{ order.id }}</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <h1>Заказ #{{ order.id }}</h1>
+  
+  <div>
+    <h2>Товары:</h2>
+    <ul>
+      {% for item in order.items.all %}
+        <li>
+          {{ item.item.name }} - 
+          {{ item.quantity }} × {{ item.unit_price }} {{ order.currency|upper }}
+          = <b>{{ item.total_price }} {{ order.currency|upper }}</b>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% if order.discounts.all %}
+    <div>
+      <h2>Скидки:</h2>
+      <ul>
+        {% for discount in order.discounts.all %}
+          <li>
+            {{ discount.name }} - 
+            {% if discount.percent %}
+              {{ discount.percent }}%
+            {% elif discount.amount %}
+              {{ discount.amount }} {{ order.currency|upper }}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if order.taxes.all %}
+    <div>
+      <h2>Налоги:</h2>
+      <ul>
+        {% for tax in order.taxes.all %}
+          <li>{{ tax.name }} - {{ tax.percent }}%</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div>
+    <h2>Итого: {{ order.total_price }} {{ order.currency|upper }}</h2>
+  </div>
+
+  <button id="pay-button">Оплатить заказ</button>
+
+  <script type="text/javascript">
+    const stripe = Stripe("{{ stripe_publishable_key }}");
+    const payButton = document.getElementById("pay-button");
+
+    payButton.addEventListener("click", () => {
+      fetch("{% url 'payments:api_buy_order' order.id %}", {
+        method: "GET",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Ошибка при создании платежной сессии");
+        return response.json();
+      })
+      .then(session => {
+        return stripe.redirectToCheckout({ sessionId: session.id });
+      })
+      .then(result => {
+        if (result.error) {
+          alert(result.error.message);
+        }
+      })
+      .catch(error => {
+        console.error("Ошибка:", error);
+        alert("Произошла ошибка при оплате заказа");
+      });
+    });
+  </script>
+</body>
+</html>
