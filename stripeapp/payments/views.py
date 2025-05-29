@@ -24,6 +24,23 @@ class ItemDetailView(TemplateView):
         return context
 
 
+class OrderDetailView(TemplateView):
+    template_name = "payments/order_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order = get_object_or_404(
+            Order,
+            pk=self.kwargs.get('order_id'),
+            user=self.request.user
+        )
+        context.update({
+            "order": order,
+            "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+        })
+        return context
+
+
 class CreateCheckoutSessionItem(APIView):
     def get(self, request, item_id):
         item = get_object_or_404(Item, pk=item_id)
@@ -83,24 +100,26 @@ class CreateCheckoutSessionOrder(APIView):
             })
 
         discounts = []
-        for discount in order.discounts.filter(active=True):
+        active_discounts = order.discounts.filter(active=True)
+
+        if active_discounts.exists():
+            discount = active_discounts.first()
+            coupon_params = {
+                "duration": "once",
+                "name": discount.name,
+            }
+
             if discount.percent:
-                discounts.append({
-                    "coupon_data": {
-                        "percent_off": discount.percent,
-                        "name": discount.name,
-                        "duration": "once",
-                    }
-                })
+                coupon_params["percent_off"] = discount.percent
             elif discount.amount:
-                discounts.append({
-                    "coupon_data": {
-                        "amount_off": int(discount.amount * 100),
-                        "currency": order.currency,
-                        "name": discount.name,
-                        "duration": "once",
-                    }
-                })
+                coupon_params["amount_off"] = int(discount.amount * 100)
+                coupon_params["currency"] = order.currency
+
+            try:
+                coupon = stripe.Coupon.create(**coupon_params)
+                discounts.append({"coupon": coupon.id})
+            except stripe.error.StripeError as e:
+                return Response({"error": str(e)}, status=400)
 
         taxes = []
         for tax in order.taxes.filter(active=True):
@@ -117,12 +136,11 @@ class CreateCheckoutSessionOrder(APIView):
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
-            discounts=discounts or None,
+            discounts=discounts if discounts else None,
             tax_id_collection={"enabled": False},
             success_url=request.build_absolute_uri(
                 reverse("payments:order_success")) + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=request.build_absolute_uri(
-                reverse("payments:order_cancel")),
+            cancel_url=request.build_absolute_uri(reverse("payments:order_cancel")),
             metadata={
                 "order_id": str(order.id),
                 "user_id": str(request.user.id),
